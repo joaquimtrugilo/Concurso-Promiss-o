@@ -22,7 +22,10 @@ export default function App() {
   // Navigation & General App State
   const [activeTab, setActiveTab] = useState<'dashboard' | 'tutor' | 'questions' | 'simulados' | 'flashcards' | 'promissao' | 'materials' | 'comunidade' | 'admin'>('dashboard');
   const [selectedRole, setSelectedRole] = useState<'Agente de Combate às Endemias' | 'Agente Comunitário de Saúde' | 'Vigilante Sanitário'>('Agente de Combate às Endemias');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false);
+  const [expandedLawId, setExpandedLawId] = useState<string | null>('l1');
+  
   const [stats, setStats] = useState({
     xp: 2400,
     level: 24,
@@ -479,11 +482,11 @@ export default function App() {
     : 0;
 
   return (
-    <div id="app-root" className="min-h-screen bg-[#F4F7FA] font-sans text-slate-800 flex flex-col md:flex-row">
+    <div id="app-root" className="min-h-screen bg-[#F4F7FA] font-sans text-slate-800 flex flex-col md:flex-row pb-20 md:pb-0">
       
       {/* Toast Notification */}
       {notification && (
-        <div id="toast-notif" className={`fixed bottom-6 right-6 z-50 transform translate-y-0 transition-all duration-300 max-w-sm p-4 rounded-xl shadow-2xl flex items-center space-x-3 border-l-4 ${
+        <div id="toast-notif" className={`fixed bottom-24 right-6 md:bottom-6 z-50 transform translate-y-0 transition-all duration-300 max-w-sm p-4 rounded-xl shadow-2xl flex items-center space-x-3 border-l-4 ${
           notification.type === 'success' ? 'bg-[#002B5B] text-white border-green-400' :
           notification.type === 'error' ? 'bg-red-950 text-red-100 border-red-500' :
           'bg-slate-900 text-slate-100 border-[#C5A059]'
@@ -494,8 +497,13 @@ export default function App() {
         </div>
       )}
 
+      {/* Mobile Sidebar BackDrop */}
+      {isSidebarOpen && (
+        <div className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 transition-all" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       {/* Sidebar Navigation conforming to "Geometric Balance" */}
-      <aside className={`${isSidebarOpen ? 'w-full md:w-64' : 'w-0 md:w-20'} bg-[#002B5B] flex flex-col border-r border-slate-200 transition-all duration-300 overflow-hidden shrink-0 z-40`}>
+      <aside className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} fixed md:relative top-0 bottom-0 left-0 w-72 md:w-64 bg-[#002B5B] flex flex-col border-r border-slate-200 transition-transform duration-300 overflow-hidden shrink-0 z-40 h-full`}>
         <div className="p-6 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#C5A059] rounded-lg flex items-center justify-center font-bold text-white shadow-lg">PA</div>
@@ -503,7 +511,7 @@ export default function App() {
               <span className="text-[#C5A059] text-[10px] tracking-widest uppercase">Aprovação</span>
             </h1>
           </div>
-          <button className="md:hidden text-white" onClick={() => setIsSidebarOpen(false)}>
+          <button className="md:hidden text-white w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors" onClick={() => setIsSidebarOpen(false)}>
             <X size={20} />
           </button>
         </div>
@@ -527,93 +535,93 @@ export default function App() {
 
         <nav className="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
           <button 
-            onClick={() => setActiveTab('dashboard')} 
+            onClick={() => { setActiveTab('dashboard'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'dashboard' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">📊</span>
-            <span className="text-xs">Dashboard</span>
+            <span className="text-xs font-medium">Dashboard</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('tutor')} 
+            onClick={() => { setActiveTab('tutor'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'tutor' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">🤖</span>
-            <span className="text-xs">Tutor IA & Redação</span>
+            <span className="text-xs font-medium">Tutor IA & Redação</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('questions')} 
+            onClick={() => { setActiveTab('questions'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'questions' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">📝</span>
-            <span className="text-xs">Banco de Questões</span>
+            <span className="text-xs font-medium">Banco de Questões</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('simulados')} 
+            onClick={() => { setActiveTab('simulados'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'simulados' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">📑</span>
-            <span className="text-xs">Simuladores VUNESP</span>
+            <span className="text-xs font-medium">Simuladores VUNESP</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('flashcards')} 
+            onClick={() => { setActiveTab('flashcards'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'flashcards' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">⚡</span>
-            <span className="text-xs">Repetição Espaçada</span>
+            <span className="text-xs font-medium">Repetição Espaçada</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('promissao')} 
+            onClick={() => { setActiveTab('promissao'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'promissao' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">📍</span>
-            <span className="text-xs">Área Promissão/SP</span>
+            <span className="text-xs font-medium">Área Promissão/SP</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('materials')} 
+            onClick={() => { setActiveTab('materials'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'materials' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">📚</span>
-            <span className="text-xs">Aulas & PDFs</span>
+            <span className="text-xs font-medium">Aulas & PDFs</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('comunidade')} 
+            onClick={() => { setActiveTab('comunidade'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'comunidade' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">💬</span>
-            <span className="text-xs">Mural da Comunidade</span>
+            <span className="text-xs font-medium">Mural da Comunidade</span>
           </button>
 
           <button 
-            onClick={() => setActiveTab('admin')} 
+            onClick={() => { setActiveTab('admin'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'admin' ? 'bg-white/10 text-[#C5A059] border border-white/10 font-bold' : 'text-white/40 hover:bg-white/5'
             }`}
           >
             <span className="text-lg">⚙️</span>
-            <span className="text-xs">Configurar Banco</span>
+            <span className="text-xs font-medium">Configurar Banco</span>
           </button>
         </nav>
 
@@ -634,14 +642,19 @@ export default function App() {
       <div className="flex-1 flex flex-col overflow-x-hidden">
         
         {/* Header conforming to Design HTML */}
-        <header className="h-20 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button className="md:hidden text-slate-750" onClick={() => setIsSidebarOpen(true)}>
-              <Menu size={24} />
+        <header className="h-16 md:h-20 bg-white/90 backdrop-blur-md sticky top-0 border-b border-slate-200 px-4 md:px-6 flex items-center justify-between z-30">
+          <div className="flex items-center gap-2 md:gap-4">
+            <button className="md:hidden text-[#002B5B] w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all" onClick={() => setIsSidebarOpen(true)}>
+              <Menu size={20} />
             </button>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-medium">Cargo Alvo:</span>
-              <span className="bg-slate-100 px-3 py-1 rounded-full text-[11px] font-bold text-slate-700 border border-slate-200 uppercase tracking-tight">{selectedRole}</span>
+            <div className="flex items-center gap-1.5 md:gap-2">
+              <span className="text-[10px] md:text-xs text-slate-500 font-medium hidden xs:inline">Cargo Alvo:</span>
+              <span 
+                onClick={() => setIsMoreDrawerOpen(true)}
+                className="bg-[#002B5B]/5 hover:bg-[#002B5B]/10 active:scale-95 transition-all px-2.5 py-1 rounded-full text-[9px] md:text-[11px] font-bold text-[#002B5B] border border-[#002B5B]/10 uppercase tracking-tight cursor-pointer"
+              >
+                {selectedRole.length > 20 ? selectedRole.substring(0, 18) + '...' : selectedRole} ▾
+              </span>
             </div>
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-xs text-slate-500 font-medium font-serif">Prova Edital:</span>
@@ -1047,6 +1060,28 @@ export default function App() {
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* Quick Suggestion Pills for Mobile Ease */}
+                  <div className="px-4 pb-2 pt-1.5 flex gap-2 overflow-x-auto scrollbar-none shrink-0 border-t border-slate-100 bg-slate-50/50">
+                    {[
+                      { key: "Mnemônico dengue", text: "Mnemônico Dengue 🦟", prompt: "Crie um mnemônico divertido e fácil de memorizar sobre as fases e sintomas da dengue clássica de forma resumida." },
+                      { key: "Lei 8080 artigo 7", text: "Lei 8080 - Art 7 ⚖️", prompt: "Quais são os principais princípios do SUS listados no Artigo 7º da Lei 8.080 de forma resumida para concurso?" },
+                      { key: "Vetor Aedes", text: "Ciclo do Vetor 🧪", prompt: "Explique de forma detalhada o ciclo reprodutivo do mosquito transmissor Aedes aegypti de forma simples." },
+                      { key: "LIP Promissão", text: "Licença Servidor 📍", prompt: "O que a Lei Orgânica de Promissão prevê sobre a licença para tratar de interesses particulares e estabilidade de forma resumida?" }
+                    ].map((sug) => (
+                      <button
+                        key={sug.key}
+                        type="button"
+                        onClick={() => {
+                          setChatInput(sug.prompt);
+                          showToast("Sugestão selecionada! Edite ou clique em Enviar.");
+                        }}
+                        className="bg-white hover:bg-[#002B5B] hover:text-white transition-all text-[11px] font-medium text-[#002B5B] border border-slate-200 px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer shadow-sm shrink-0 active:scale-95"
+                      >
+                        {sug.text}
+                      </button>
+                    ))}
                   </div>
 
                   {/* Input form */}
@@ -1644,32 +1679,32 @@ export default function App() {
                   </span>
                 </div>
 
-                {/* Score Grade Buttons */}
-                {isCardFlipped && (
-                  <div className="grid grid-cols-3 gap-3 mt-6 text-center">
-                    <button 
-                      onClick={() => handleGradeCard('hard')}
-                      className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-800 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      🔴 Errei / Difícil <br/>
-                      <span className="text-[9px] font-normal font-mono text-red-650">(Rever Amanhã)</span>
-                    </button>
-                    <button 
-                      onClick={() => handleGradeCard('good')}
-                      className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      🟡 Sabia / Médio <br/>
-                      <span className="text-[9px] font-normal font-mono text-indigo-650">(Rever daqui a {flashcards[currCardIdx].intervalDays * 2} dias)</span>
-                    </button>
-                    <button 
-                      onClick={() => handleGradeCard('easy')}
-                      className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      🟢 Decorei / Fácil <br/>
-                      <span className="text-[9px] font-normal font-mono text-emerald-650">(Rever daqui a {flashcards[currCardIdx].intervalDays * 4} dias)</span>
-                    </button>
-                  </div>
-                )}
+                 {/* Score Grade Buttons */}
+                 {isCardFlipped && (
+                   <div className="grid grid-cols-3 gap-3 mt-6 text-center">
+                     <button 
+                       onClick={() => handleGradeCard('hard')}
+                       className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-008 text-red-800 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                     >
+                       🔴 Errei <br/>
+                       <span className="text-[9px] font-normal font-mono text-red-600">(Rever Amanhã)</span>
+                     </button>
+                     <button 
+                       onClick={() => handleGradeCard('good')}
+                       className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                     >
+                       🟡 Sabia <br/>
+                       <span className="text-[9px] font-normal font-mono text-indigo-600">(Rever em {(flashcards[currCardIdx]?.intervalDays || 1) * 2} dias)</span>
+                     </button>
+                     <button 
+                       onClick={() => handleGradeCard('easy')}
+                       className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 p-3 rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                     >
+                       🟢 Decorei <br/>
+                       <span className="text-[9px] font-normal font-mono text-emerald-600">(Rever em {(flashcards[currCardIdx]?.intervalDays || 1) * 4} dias)</span>
+                     </button>
+                   </div>
+                 )}
               </div>
 
             </div>
@@ -1717,34 +1752,52 @@ export default function App() {
                 <h4 className="text-sm font-bold text-[#002B5B] mb-4">📖 Leis Municipais Anotadas para Estudo Ativo</h4>
                 
                 <div className="space-y-6">
-                  {localLawSummaries.map((law) => (
-                    <div key={law.id} className="p-4 bg-slate-50 border border-slate-150 rounded-2xl space-y-3">
-                      <div>
-                        <h5 className="font-serif font-bold text-sm text-[#002B5B] tracking-wide">{law.title}</h5>
-                        <p className="text-[10px] text-slate-400 font-mono mb-1">{law.subtitle}</p>
-                        <p className="text-xs text-slate-600 leading-relaxed">{law.description}</p>
-                      </div>
+                  {localLawSummaries.map((law) => {
+                    const isExpanded = expandedLawId === law.id;
+                    return (
+                      <div key={law.id} className="p-4 bg-slate-50 border border-slate-150 rounded-2xl transition-all duration-300">
+                        <div 
+                          className="flex justify-between items-center cursor-pointer select-none"
+                          onClick={() => setExpandedLawId(isExpanded ? null : law.id)}
+                        >
+                          <div className="flex-1 pr-4">
+                            <h5 className="font-serif font-bold text-sm text-[#002B5B] tracking-wide flex items-center gap-2">
+                              <span>📖</span> {law.title}
+                            </h5>
+                            <p className="text-[10px] text-slate-400 font-mono">{law.subtitle}</p>
+                          </div>
+                          <span className="bg-[#002B5B]/5 hover:bg-[#002B5B]/10 text-[#002B5B] text-[10px] font-bold px-2 py-1 rounded-lg transition-colors shrink-0">
+                            {isExpanded ? '▲ Recolher' : '▼ Estudar'}
+                          </span>
+                        </div>
 
-                      <div className="bg-white p-3.5 rounded-xl border border-slate-100 text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        <strong>Resumo Geral:</strong> {law.fullTextSummary}
-                      </div>
+                        {isExpanded && (
+                          <div className="mt-4 space-y-4 animate-fade-in">
+                            <p className="text-xs text-slate-600 leading-relaxed">{law.description}</p>
+                            
+                            <div className="bg-white p-3.5 rounded-xl border border-slate-100 text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
+                              <strong>Resumo Geral:</strong> {law.fullTextSummary}
+                            </div>
 
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">ARTIGOS MAIS COBRADOS (VUNESP)</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {law.keyArticles.map((art, idx) => (
-                            <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100">
-                              <span className="text-[9px] bg-indigo-50 text-indigo-700 px-2 py-0.2 rounded font-bold">{art.article}</span>
-                              <p className="text-[11px] text-slate-800 leading-relaxed mt-1.5 italic font-serif">"{art.text}"</p>
-                              <div className="mt-2 text-[10px] text-amber-600 font-mono font-bold leading-normal bg-amber-50/50 p-1.5 rounded">
-                                💡 Comentário: {art.note}
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">ARTIGOS MAIS COBRADOS (VUNESP)</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {law.keyArticles.map((art, idx) => (
+                                  <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100">
+                                    <span className="text-[9px] bg-indigo-50 text-indigo-700 px-2 py-0.2 rounded font-bold">{art.article}</span>
+                                    <p className="text-[11px] text-slate-800 leading-relaxed mt-1.5 italic font-serif">"{art.text}"</p>
+                                    <div className="mt-2 text-[10px] text-amber-600 font-mono font-bold leading-normal bg-amber-50/50 p-1.5 rounded">
+                                      💡 Comentário: {art.note}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
 
@@ -2119,6 +2172,168 @@ export default function App() {
         </footer>
 
       </div>
+
+      {/* Bottom Navigation Bar for Mobile Panel */}
+      <div id="mobile-nav" className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-2 py-2 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] flex justify-between items-center text-center">
+        <button 
+          onClick={() => { setActiveTab('dashboard'); setIsMoreDrawerOpen(false); }}
+          className={`flex-1 flex flex-col items-center justify-center py-1 gap-1 transition-all ${
+            activeTab === 'dashboard' ? 'text-[#002B5B] scale-105' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <span className="text-xl">📊</span>
+          <span className="text-[10px] font-bold">Início</span>
+        </button>
+
+        <button 
+          onClick={() => { setActiveTab('questions'); setIsMoreDrawerOpen(false); }}
+          className={`flex-1 flex flex-col items-center justify-center py-1 gap-1 transition-all ${
+            activeTab === 'questions' ? 'text-[#002B5B] scale-105' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <span className="text-xl">📝</span>
+          <span className="text-[10px] font-bold">Banco</span>
+        </button>
+
+        <button 
+          onClick={() => { setActiveTab('tutor'); setIsMoreDrawerOpen(false); }}
+          className={`flex-1 flex flex-col items-center justify-center py-1 gap-1 transition-all relative ${
+            activeTab === 'tutor' ? 'text-[#002B5B] scale-105' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <span className="text-xl relative">🤖
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#C5A059] animate-ping" />
+          </span>
+          <span className="text-[10px] font-bold flex items-center justify-center gap-0.5">Tutor IA</span>
+        </button>
+
+        <button 
+          onClick={() => { setActiveTab('flashcards'); setIsMoreDrawerOpen(false); }}
+          className={`flex-1 flex flex-col items-center justify-center py-1 gap-1 transition-all ${
+            activeTab === 'flashcards' ? 'text-[#002B5B] scale-105' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <span className="text-xl">⚡</span>
+          <span className="text-[10px] font-bold">Revisar</span>
+        </button>
+
+        <button 
+          onClick={() => setIsMoreDrawerOpen(!isMoreDrawerOpen)}
+          className={`flex-1 flex flex-col items-center justify-center py-1 gap-1 transition-all ${
+            isMoreDrawerOpen ? 'text-[#C5A059] scale-105' : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <span className={`text-xl transition-transform duration-300 ${isMoreDrawerOpen ? 'rotate-45' : ''}`}>➕</span>
+          <span className="text-[10px] font-bold">Mais</span>
+        </button>
+      </div>
+
+      {/* Mobile "More" Drawer Overlay Sheet */}
+      {isMoreDrawerOpen && (
+        <div id="more-drawer-backdrop" className="md:hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 transition-opacity duration-300" onClick={() => setIsMoreDrawerOpen(false)}>
+          <div 
+            id="more-drawer-panel"
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[32px] p-6 shadow-[0_-10px_32px_rgba(0,0,0,0.15)] pb-12 border-t border-slate-100 transition-transform duration-300 transform translate-y-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Soft drag handle ornament */}
+            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-5" />
+
+            <div className="flex justify-between items-center mb-5">
+              <div>
+                <h3 className="text-[#002B5B] font-bold text-sm">Outras Áreas do Edital</h3>
+                <p className="text-[11px] text-slate-400">Estude materiais localizados de Promissão/SP</p>
+              </div>
+              <button 
+                onClick={() => setIsMoreDrawerOpen(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-250 transition-colors"
+              >
+                ✖
+              </button>
+            </div>
+
+            {/* Quick Stats Capsule */}
+            <div className="bg-[#002B5B]/5 border border-[#002B5B]/10 rounded-2xl p-3 flex items-center justify-between gap-2 mb-5">
+              <div>
+                <p className="text-[9px] uppercase font-bold text-[#002B5B]">Seu Desempenho Ativo</p>
+                <p className="text-xs text-slate-650 font-bold mt-0.5">Nível {stats.level} • {stats.dailyStreak} dias seguidos</p>
+              </div>
+              <span className="bg-[#C5A059] text-white text-[10px] font-mono px-2 py-0.5 rounded font-bold">+{stats.xp} XP</span>
+            </div>
+
+            {/* Grid menu mapping */}
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <button 
+                onClick={() => { setActiveTab('simulados'); setIsMoreDrawerOpen(false); }}
+                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${
+                  activeTab === 'simulados' ? 'bg-[#002B5B]/10 border-[#002B5B] text-[#002B5B]' : 'bg-slate-50 border-slate-150 hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                <span className="text-2xl">📑</span>
+                <span className="text-[10px] font-bold leading-tight">Simuladores VUNESP</span>
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('promissao'); setIsMoreDrawerOpen(false); }}
+                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${
+                  activeTab === 'promissao' ? 'bg-[#002B5B]/10 border-[#002B5B] text-[#002B5B]' : 'bg-slate-50 border-slate-150 hover:bg-slate-100 text-slate-700'
+                }`}
+              >
+                <span className="text-2xl">📍</span>
+                <span className="text-[10px] font-bold leading-tight">Área Promissão/SP</span>
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('materials'); setIsMoreDrawerOpen(false); }}
+                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${
+                  activeTab === 'materials' ? 'bg-[#002B5B]/10 border-[#002B5B] text-[#002B5B]' : 'bg-slate-50 border-slate-150 hover:bg-slate-100 text-slate-705 text-slate-700'
+                }`}
+              >
+                <span className="text-2xl">📚</span>
+                <span className="text-[10px] font-bold leading-tight">Aulas & PDFs</span>
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('comunidade'); setIsMoreDrawerOpen(false); }}
+                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${
+                  activeTab === 'comunidade' ? 'bg-[#002B5B]/10 border-[#002B5B] text-[#002B5B]' : 'bg-slate-50 border-slate-150 hover:bg-slate-100 text-slate-705 text-slate-700'
+                }`}
+              >
+                <span className="text-2xl">💬</span>
+                <span className="text-[10px] font-bold leading-tight">Mural de Estudos</span>
+              </button>
+
+              <button 
+                onClick={() => { setActiveTab('admin'); setIsMoreDrawerOpen(false); }}
+                className={`p-3.5 rounded-2xl border col-span-2 flex flex-col items-center justify-center text-center gap-2 transition-all ${
+                  activeTab === 'admin' ? 'bg-[#002B5B]/10 border-[#002B5B] text-[#002B5B]' : 'bg-slate-50 border-slate-150 hover:bg-slate-100 text-slate-705 text-slate-700'
+                }`}
+              >
+                <span className="text-2xl">⚙️</span>
+                <span className="text-[10px] font-bold leading-tight">Configurar Banco de Dados</span>
+              </button>
+            </div>
+
+            {/* Target Role drop-down directly inside "Mais" menu for phone customization */}
+            <div className="border-t border-slate-150 pt-4">
+              <label className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2 font-mono">Alterar Cargo Alvo:</label>
+              <select 
+                value={selectedRole}
+                onChange={(e) => {
+                  setSelectedRole(e.target.value as any);
+                  showToast(`Cargo alterado para ${e.target.value}!`, 'info');
+                }}
+                className="w-full bg-slate-100 text-slate-800 text-xs rounded-xl px-3 py-2.5 border border-slate-250 focus:outline-none"
+              >
+                <option value="Agente de Combate às Endemias">ACS / Combate às Endemias (ACE)</option>
+                <option value="Agente Comunitário de Saúde">Agente Comunitário de Saúde (ACS)</option>
+                <option value="Vigilante Sanitário">Vigilante Sanitário Municipal</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
