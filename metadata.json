@@ -1,0 +1,6 @@
+{
+  "name": "Promissão Concursos - ACE",
+  "description": "Plataforma avançada e gamificada para aprovação no concurso municipal de Promissão/SP. Banco de questões, simulados realistas com IA, revisões espaçadas, tutor 24h e conteúdos específicos para Agente de Combate às Endemias.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
