@@ -1,18 +1,5 @@
-const CACHE_NAME = 'promissao-concursos-v4';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
-];
-
+// This is a self-cleaning script to force unregister existing service workers and clear caches
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS).catch(() => {
-        // Safe catch to ignore asset fetch issues in development environment
-      });
-    })
-  );
   self.skipWaiting();
 });
 
@@ -21,36 +8,24 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+          return caches.delete(key);
         })
       );
+    }).then(() => {
+      return self.registration.unregister();
+    }).then(() => {
+      return self.clients.matchAll();
+    }).then((clients) => {
+      clients.forEach((client) => {
+        if (client.navigate) {
+          client.navigate(client.url);
+        }
+      });
     })
   );
-  self.clients.claim();
 });
 
+// Pass-through: no cache interception
 self.addEventListener('fetch', (event) => {
-  if (event.request.url.startsWith('http')) {
-    // Network-First with Cache Fallback strategy
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // If response is invalid, or a POST request (we can only cache GET), skip caching
-          if (!response || response.status !== 200 || response.type !== 'basic' || event.request.method !== 'GET') {
-            return response;
-          }
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-          return response;
-        })
-        .catch(() => {
-          // If network fails (offline), load from cache fallback
-          return caches.match(event.request);
-        })
-    );
-  }
+  return;
 });

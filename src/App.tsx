@@ -8,7 +8,8 @@ import {
   Menu, X, Sparkles, Brain, GraduationCap, CheckSquare, 
   HelpCircle, Award, Compass, Search, Bookmark, CheckCircle, 
   XCircle, Send, MessageSquare, BookOpen, Clock, Play, FileText, 
-  Plus, BarChart2, ShieldCheck, MapPin, Zap, RefreshCw, Layers
+  Plus, BarChart2, ShieldCheck, MapPin, Zap, RefreshCw, Layers,
+  Volume2, VolumeX, Flame, Heart, Target, AlertTriangle
 } from 'lucide-react';
 import { 
   initialQuestions, initialAchievements, initialFlashcards, 
@@ -18,9 +19,120 @@ import {
 import { Question, Flashcard, ForumPost, LocalLawSummary, VideoLesson, PdfMaterial, StudyScheduleItem } from './types';
 import AILoading from './components/AILoading';
 
+// Web Audio API Synthesizer for high-fidelity immersive gameplay feedback
+let audioCtx: AudioContext | null = null;
+const playAudioEffect = (type: 'click' | 'correct' | 'wrong' | 'unlock' | 'ticking' | 'laser') => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtx) {
+      audioCtx = new AudioContextClass();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g);
+    g.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'click') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(600, now);
+      o.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+      g.gain.setValueAtTime(0.05, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      o.start(now);
+      o.stop(now + 0.08);
+    } else if (type === 'correct') {
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(523.25, now); // C5
+      o.frequency.setValueAtTime(659.25, now + 0.1); // E5
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      o.start(now);
+      o.stop(now + 0.3);
+    } else if (type === 'wrong') {
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(130, now);
+      o.frequency.linearRampToValueAtTime(80, now + 0.35);
+      g.gain.setValueAtTime(0.09, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      o.start(now);
+      o.stop(now + 0.35);
+    } else if (type === 'unlock') {
+      const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99]; // C Major
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx!.createOscillator();
+        const gainNode = audioCtx!.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx!.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+        gainNode.gain.setValueAtTime(0.06, now + idx * 0.06);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.45);
+        osc.start(now + idx * 0.06);
+        osc.stop(now + idx * 0.06 + 0.45);
+      });
+    } else if (type === 'ticking') {
+      o.type = 'sine';
+      o.frequency.setValueAtTime(1100, now);
+      g.gain.setValueAtTime(0.015, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      o.start(now);
+      o.stop(now + 0.03);
+    } else if (type === 'laser') {
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(1400, now);
+      o.frequency.exponentialRampToValueAtTime(120, now + 0.28);
+      g.gain.setValueAtTime(0.07, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      o.start(now);
+      o.stop(now + 0.28);
+    }
+  } catch (err) {
+    console.warn('Audio synthesis bypassed or muted:', err);
+  }
+};
+
+// Standard native mobile browser physical vibration haptic response
+const vibrateDevice = (pattern: number | number[]) => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try {
+      navigator.vibrate(pattern);
+    } catch {}
+  }
+};
+
+// Web Speech API Text-to-Speech (TTS) voice engine for speaking AI Tutor
+let speechVoice: SpeechSynthesisVoice | null = null;
+const handleSpeakText = (text: string) => {
+  if ('speechSynthesis' in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const cleaned = text.replace(/[*#_`~]/g, '');
+      const utterance = new SpeechSynthesisUtterance(cleaned);
+      utterance.lang = 'pt-BR';
+      utterance.rate = 1.05;
+      
+      const voices = window.speechSynthesis.getVoices();
+      const ptVoice = voices.find(v => v.lang.startsWith('pt'));
+      if (ptVoice) {
+        utterance.voice = ptVoice;
+      }
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("Speech Synthesis engine exception:", err);
+    }
+  }
+};
+
 export default function App() {
   // Navigation & General App State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tutor' | 'questions' | 'simulados' | 'flashcards' | 'promissao' | 'materials' | 'comunidade' | 'admin'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'tutor' | 'questions' | 'simulados' | 'flashcards' | 'promissao' | 'materials' | 'comunidade' | 'admin' | 'arena'>('dashboard');
   const [selectedRole, setSelectedRole] = useState<'Agente de Combate às Endemias' | 'Agente Comunitário de Saúde' | 'Vigilante Sanitário'>('Agente de Combate às Endemias');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMoreDrawerOpen, setIsMoreDrawerOpen] = useState(false);
@@ -92,6 +204,15 @@ export default function App() {
     setHasSubmittedAnswer(true);
 
     const isCorrect = chosenIndex === filteredQuestions[currQuestionIndex].correctIndex;
+    
+    // Play sounds and haptic vibration feedback
+    if (isCorrect) {
+      playAudioEffect('correct');
+      vibrateDevice(50);
+    } else {
+      playAudioEffect('wrong');
+      vibrateDevice([100, 50, 100]);
+    }
     
     // Update question status
     setQuestions(prev => prev.map(q => q.id === filteredQuestions[currQuestionIndex].id ? { ...q, userAnswer: chosenIndex } : q));
@@ -390,6 +511,158 @@ export default function App() {
     }
   };
 
+  // 6. Pomodoro Study Clock State
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(1500); // 25 Min
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const [pomodoroMode, setPomodoroMode] = useState<'work' | 'break'>('work');
+
+  // Pomodoro effect
+  useEffect(() => {
+    let interval: any = null;
+    if (pomodoroRunning) {
+      interval = setInterval(() => {
+        setPomodoroTimeLeft(prev => {
+          if (prev <= 1) {
+            playAudioEffect('unlock');
+            vibrateDevice([100, 50, 100]);
+            const nextMode = pomodoroMode === 'work' ? 'break' : 'work';
+            const nextTime = nextMode === 'work' ? 1500 : 300;
+            setPomodoroMode(nextMode);
+            setPomodoroRunning(false);
+            showToast(nextMode === 'work' ? "Fim do intervalo! Hora de focar." : "Foco concluído! Aproveite 5 minutinhos de descanso.", "success");
+            
+            if (nextMode === 'break') {
+              setStats(s => ({ ...s, xp: s.xp + 150, studiedHours: s.studiedHours + 1 }));
+            }
+            return nextTime;
+          }
+          if (prev % 10 === 0) {
+            playAudioEffect('ticking');
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [pomodoroRunning, pomodoroMode]);
+
+  // 7. Combat Arena Minigame State
+  const [enemyHp, setEnemyHp] = useState(100);
+  const [playerHp, setPlayerHp] = useState(100);
+  const [combatLevel, setCombatLevel] = useState(1);
+  const [enemyName, setEnemyName] = useState("Vetor Aedes Mutante");
+  const [enemyEmoji, setEnemyEmoji] = useState("🦟");
+  const [combatQuestion, setCombatQuestion] = useState<Question | null>(null);
+  const [combatSelectedAnswerIdx, setCombatSelectedAnswerIdx] = useState<number | null>(null);
+  const [combatAnswered, setCombatAnswered] = useState(false);
+  const [isEnemyDamaged, setIsEnemyDamaged] = useState(false);
+  const [isPlayerDamaged, setIsPlayerDamaged] = useState(false);
+  const [damageFeedback, setDamageFeedback] = useState("");
+  const [combatHistory, setCombatHistory] = useState<string[]>(["Arena de Combate instalada! Vença os criadouros para ganhar XP massivo."]);
+
+  // Load a random combat question focus target
+  const handleLoadCombatQuestion = () => {
+    const list = questions.length > 0 ? questions : initialQuestions;
+    const randomQ = list[Math.floor(Math.random() * list.length)];
+    setCombatQuestion(randomQ);
+    setCombatSelectedAnswerIdx(null);
+    setCombatAnswered(false);
+    setIsEnemyDamaged(false);
+    setIsPlayerDamaged(false);
+    setDamageFeedback("");
+  };
+
+  // Start a new Battle from scratch
+  const handleStartNewBattle = () => {
+    const monsters = [
+      { name: "Super Criadouro Caixa D'Água Aberta", emoji: "🛢️", hpMultiplier: 1.0 },
+      { name: "Aedes Mutante do Rio Tietê", emoji: "🦟", hpMultiplier: 1.25 },
+      { name: "Ácaro Gigante da Vigilância", emoji: "🦠", hpMultiplier: 1.15 },
+      { name: "Invasão Silvestre de Leishmaniose", emoji: "🐕", hpMultiplier: 1.35 },
+    ];
+    const pickedMonster = monsters[Math.floor(Math.random() * monsters.length)];
+    setEnemyName(pickedMonster.name);
+    setEnemyEmoji(pickedMonster.emoji);
+    setEnemyHp(Math.round(100 * pickedMonster.hpMultiplier));
+    setPlayerHp(100);
+    setCombatHistory([`Uma nova ameaça surge em Promissão/SP: o violento "${pickedMonster.name}" com ${Math.round(100 * pickedMonster.hpMultiplier)} HP. Prepare-se!`]);
+    // Set first question
+    const list = questions.length > 0 ? questions : initialQuestions;
+    setCombatQuestion(list[Math.floor(Math.random() * list.length)]);
+    setCombatSelectedAnswerIdx(null);
+    setCombatAnswered(false);
+    setIsEnemyDamaged(false);
+    setIsPlayerDamaged(false);
+    setDamageFeedback("");
+    playAudioEffect('unlock');
+    vibrateDevice(50);
+  };
+
+  // Handle answering a battle question
+  const handleAnswerCombatQuestion = (optIdx: number) => {
+    if (combatAnswered || !combatQuestion) return;
+    setCombatSelectedAnswerIdx(optIdx);
+    setCombatAnswered(true);
+
+    const isCorrect = optIdx === combatQuestion.correctIndex;
+    if (isCorrect) {
+      playAudioEffect('laser');
+      vibrateDevice(40);
+      setIsEnemyDamaged(true);
+      const dmg = Math.round(25 + Math.random() * 15);
+      const nextEnemyHp = Math.max(0, enemyHp - dmg);
+      setEnemyHp(nextEnemyHp);
+      setDamageFeedback(`⚡ HIT! Você atingiu o criadouro causando -${dmg} de Dano com Spray Focal!`);
+      setCombatHistory(prev => [
+        `Candidato acertou! Disparou ataque químico técnico. -${dmg} HP no inimigo.`,
+        ...prev
+      ]);
+
+      if (nextEnemyHp <= 0) {
+        setTimeout(() => {
+          playAudioEffect('unlock');
+          vibrateDevice([150, 100, 150]);
+          setCombatLevel(cl => cl + 1);
+          setStats(s => ({
+            ...s,
+            xp: s.xp + 300,
+            studiedHours: s.studiedHours + 2,
+            questionsAnswered: s.questionsAnswered + 1,
+            questionsCorrect: s.questionsCorrect + 1
+          }));
+          setCombatHistory(prev => [
+            `🏆 VITÓRIA! Você aniquilou o "${enemyName}" e resgatou Promissão da infestação! +300 XP acadêmicos!`,
+            ...prev
+          ]);
+          showToast(`VITÓRIA! +300 XP. Criadouro Sanitário Purificado!`, 'success');
+        }, 1200);
+      }
+    } else {
+      playAudioEffect('wrong');
+      vibrateDevice([100, 50, 100]);
+      setIsPlayerDamaged(true);
+      const enemyDmg = Math.round(20 + Math.random() * 10);
+      const nextPlayerHp = Math.max(0, playerHp - enemyDmg);
+      setPlayerHp(nextPlayerHp);
+      setDamageFeedback(`🚨 DANO! O criadouro revidou gerando -${enemyDmg} de Dano ao seu Escudo de Estabilidade!`);
+      setCombatHistory(prev => [
+        `Erro de conceito! O vetor se proliferou em áreas urbanas de Promissão e atacou seu escudo: -${enemyDmg} HP.`,
+        `Resposta correta era letra: ${String.fromCharCode(65 + combatQuestion.correctIndex)}) ${combatQuestion.options[combatQuestion.correctIndex]}`,
+        ...prev
+      ]);
+
+      if (nextPlayerHp <= 0) {
+        setTimeout(() => {
+          setCombatHistory(prev => [
+            `💔 DERROTA! Seu escudo esgotou. Revise flashcards ou estude leis locais para reenergizar!`,
+            ...prev
+          ]);
+          showToast(`Simulador Desativado. Seu escudo sanitário zerou!`, 'error');
+        }, 1200);
+      }
+    }
+  };
+
   // 5. Intelligent Study Schedule Generator State
   const [schedule, setSchedule] = useState<StudyScheduleItem[]>(defaultSchedule);
   const [availableDailyHours, setAvailableDailyHours] = useState(3);
@@ -581,6 +854,25 @@ export default function App() {
           </button>
 
           <button 
+            onClick={() => { 
+              setActiveTab('arena'); 
+              setIsSidebarOpen(false); 
+              if (playerHp <= 0 || !combatQuestion) { 
+                handleStartNewBattle(); 
+              } 
+            }} 
+            className={`w-full text-left p-3 rounded-xl flex items-center justify-between transition-all ${
+              activeTab === 'arena' ? 'bg-[#C5A059] text-white font-bold' : 'text-[#C5A059] hover:bg-white/5 border border-[#C5A059]/30 bg-[#C5A059]/5 animate-bounce-slow'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🎮</span>
+              <span className="text-xs font-medium">Arena de Combate</span>
+            </div>
+            <span className="bg-red-600 text-[8px] text-white px-1.5 py-0.5 rounded-full font-bold uppercase animate-pulse">RPG</span>
+          </button>
+
+          <button 
             onClick={() => { setActiveTab('questions'); setIsSidebarOpen(false); }} 
             className={`w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${
               activeTab === 'questions' ? 'bg-white/10 text-white border border-white/10 font-bold' : 'text-white/70 hover:bg-white/5'
@@ -746,6 +1038,58 @@ export default function App() {
                       className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                     >
                       Conversar com Treinador IA
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Pomodoro Focus Clock Widget */}
+              <section className="bg-white rounded-3xl p-5 border border-[#C5A059]/30 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-xl animate-pulse">
+                    ⏱️
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
+                      Pomodoro Concurseiro de Alta Performance 
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${pomodoroMode === 'work' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        {pomodoroMode === 'work' ? '🛠️ Foco Ativo (25 min)' : '🍃 Descanso (5 min)'}
+                      </span>
+                    </h3>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Ative o relógio de foco profundo para estudos técnicos. Ao finalizar, receba um bônus de <strong>+150 XP</strong> de dedicação de cargo!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="font-mono text-2xl font-black text-[#002B5B]">
+                    {Math.floor(pomodoroTimeLeft / 60).toString().padStart(2, '0')}:{(pomodoroTimeLeft % 60).toString().padStart(2, '0')}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPomodoroRunning(!pomodoroRunning);
+                        playAudioEffect('click');
+                      }}
+                      className={`text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer active:scale-95 ${
+                        pomodoroRunning ? 'bg-amber-600 text-white' : 'bg-[#002B5B] text-white hover:bg-[#C5A059]'
+                      }`}
+                    >
+                      {pomodoroRunning ? 'Pausar ⏸️' : 'Iniciar Foco ▶️'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPomodoroRunning(false);
+                        setPomodoroTimeLeft(pomodoroMode === 'work' ? 1500 : 300);
+                        playAudioEffect('click');
+                        showToast("Cronômetro resetado devidamente!");
+                      }}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-650 text-xs font-bold px-3 py-2 rounded-xl cursor-pointer active:scale-95"
+                    >
+                      Resetar
                     </button>
                   </div>
                 </div>
@@ -1071,8 +1415,21 @@ export default function App() {
                             ? 'bg-[#002B5B] text-white rounded-tr-none' 
                             : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200'
                         }`}>
-                          <div className="font-bold font-mono text-[9px] text-[#C5A059] mb-1 uppercase tracking-widest">
-                            {msg.sender === 'user' ? 'Você (Candidato)' : 'Tutor IA de Aprovação'}
+                          <div className="flex items-center justify-between mb-1 gap-4">
+                            <span className="font-bold font-mono text-[9px] text-[#C5A059] uppercase tracking-widest">
+                              {msg.sender === 'user' ? 'Você (Candidato)' : 'Tutor IA de Aprovação'}
+                            </span>
+                            {msg.sender !== 'user' && (
+                              <button
+                                type="button"
+                                onClick={() => handleSpeakText(msg.text)}
+                                className="text-slate-400 hover:text-[#002B5B] transition-colors flex items-center gap-1 p-0.5 rounded cursor-pointer bg-slate-200/30 px-1.5 active:scale-95"
+                                title="Ouvir explicações por voz"
+                              >
+                                <Volume2 size={11} />
+                                <span className="text-[8px] font-bold">Falar / Ouvir</span>
+                              </button>
+                            )}
                           </div>
                           <div className="whitespace-pre-wrap">{msg.text}</div>
                         </div>
@@ -1638,6 +1995,264 @@ export default function App() {
                     </div>
                   )}
                 </section>
+
+              </div>
+
+            </div>
+          )}
+
+
+          {/* TAB: COMBAT ARENA RPG */}
+          {activeTab === 'arena' && (
+            <div className="space-y-6">
+              
+              {/* Dynamic Retro Header representing intense gaming atmosphere */}
+              <div className="p-5 bg-slate-900 border border-[#C5A059] rounded-3xl text-white relative overflow-hidden shadow-2xl">
+                <div className="absolute top-0 right-0 p-6 opacity-10 select-none">
+                  <span className="text-8xl">⚔️</span>
+                </div>
+                <div className="relative z-10">
+                  <span className="bg-red-650 bg-red-650 bg-red-600 text-[10px] text-white px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest">MINI-GAME RPG</span>
+                  <h2 className="text-xl font-serif italic text-white mt-1.5 flex items-center gap-2">
+                    🛡️ Arena de Combate ACE: Defensor de Promissão/SP
+                  </h2>
+                  <p className="text-slate-300 text-xs mt-1 max-w-2xl">
+                    Cada resposta correta dispara um potente jato de larvicida químico detonando o criadouro inimigo. Se errar, o vetor se prolifera urbanamente e danifica seu escudo! Estude divertindo-se e ganhe <strong>+300 XP</strong> por conquista!
+                  </p>
+                </div>
+              </div>
+
+              {/* Game Stage Layout Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Row 1: The Combat Canvas screen container */}
+                <div className="lg:col-span-8 flex flex-col space-y-6">
+                  
+                  {/* Combat Visualizer Container */}
+                  <div className="bg-slate-950 border-4 border-slate-800 rounded-3xl p-6 min-h-[300px] flex flex-col justify-between relative shadow-inner overflow-hidden">
+                    
+                    {/* Background Grid Accent */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:24px_24px] opacity-10" />
+
+                    {/* Battle Status Row */}
+                    <div className="flex justify-between items-start z-10 w-full flex-wrap gap-4">
+                      
+                      {/* Player Status Health Capsule */}
+                      <div className={`p-4 bg-slate-900/95 border border-slate-700 rounded-2xl w-44 md:w-52 transition-transform duration-300 ${isPlayerDamaged ? 'animate-shake border-red-500 bg-red-950/40' : ''}`}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-lg">🦸</span>
+                          <span className="font-bold text-[11px] text-slate-200">Defensor do SUS</span>
+                        </div>
+                        
+                        {/* HP bar */}
+                        <div className="h-3 w-full bg-slate-800 rounded-full mt-1.5 overflow-hidden border border-slate-700">
+                          <div className={`h-full transition-all duration-500 ${playerHp > 50 ? 'bg-emerald-500' : playerHp > 20 ? 'bg-amber-500 animate-pulse' : 'bg-red-600 animate-pulse'}`} style={{ width: `${playerHp}%` }} />
+                        </div>
+                        <div className="flex justify-between text-[10px] font-mono mt-1 text-slate-400">
+                          <span>HP ESCOPO</span>
+                          <span className="font-bold text-white">{playerHp}/100</span>
+                        </div>
+                      </div>
+
+                      {/* Level and vs Badge Segment */}
+                      <div className="flex flex-col items-center justify-center p-2 bg-slate-900/90 border border-[#C5A059]/40 rounded-xl">
+                        <span className="text-[10px] font-mono text-[#C5A059] font-bold">FASE {combatLevel}</span>
+                        <span className="text-red-500 font-extrabold text-xs animate-pulse">VS</span>
+                      </div>
+
+                      {/* Enemy Status Health Capsule */}
+                      <div className={`p-4 bg-slate-900/95 border border-slate-700 rounded-2xl w-44 md:w-52 text-right transition-transform duration-300 ${isEnemyDamaged ? 'animate-shake border-[#C5A059] bg-[#C5A059]/10' : ''}`}>
+                        <div className="flex items-center justify-end gap-1.5 mb-1">
+                          <span className="font-bold text-[11px] text-[#C5A059] truncate max-w-[120px]">{enemyName}</span>
+                          <span className="text-lg">{enemyEmoji}</span>
+                        </div>
+                        
+                        {/* HP bar */}
+                        <div className="h-3 w-full bg-slate-800 rounded-full mt-1.5 overflow-hidden border border-slate-700">
+                          <div className={`h-full bg-red-500 transition-all duration-500`} style={{ width: `${Math.min(100, enemyHp)}%` }} />
+                        </div>
+                        <div className="flex justify-between text-[10px] font-mono mt-1 text-slate-400">
+                          <span className="font-bold text-white">{enemyHp} HP</span>
+                          <span>CRIADOURO</span>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Combat action and floating icons stage overlay */}
+                    <div className="flex items-center justify-around py-8 z-10 min-h-[140px] relative">
+                      
+                      {/* Left Player Sprite Element */}
+                      <div className="text-center relative">
+                        <div className="text-5xl md:text-6xl animate-bounce-slow drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                          🛡️
+                        </div>
+                        <span className="bg-[#002B5B] text-[9px] text-slate-300 font-mono px-2 py-0.5 rounded border border-indigo-500 mt-2 block font-bold">SUPER ACE</span>
+                        
+                        {/* Laser Shot visual FX */}
+                        {isEnemyDamaged && (
+                          <div className="absolute top-1/2 left-10 md:left-14 w-40 md:w-72 h-1.5 bg-gradient-to-r from-[#C5A059] via-yellow-400 to-transparent rounded-full shadow-[0_0_10px_#C5A059] mix-blend-screen animate-pulse z-20 pointer-events-none" />
+                        )}
+                      </div>
+
+                      {/* Floating damage pop-ups */}
+                      {damageFeedback && (
+                        <div className="absolute inset-x-0 top-1/2 text-center z-20 pointer-events-none animate-bounce">
+                          <span className="bg-slate-900 text-white border border-[#C5A059] shadow-2xl px-4 py-2 rounded-2xl text-[11px] font-bold tracking-tight">
+                            {damageFeedback}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Right Enemy Sprite Element */}
+                      <div className="text-center relative">
+                        <div className={`text-5xl md:text-6xl drop-shadow-[0_0_15px_rgba(239,68,68,0.3)] ${isEnemyDamaged ? 'scale-75 brightness-75 duration-100' : 'animate-pulse'}`}>
+                          {enemyEmoji}
+                        </div>
+                        <span className="bg-[#002B5B] bg-slate-900 text-[9px] text-red-200 font-mono px-2 py-0.5 rounded border border-red-500 mt-2 block font-bold">VETOR</span>
+                        
+                        {/* Poison counter-spray visual FX */}
+                        {isPlayerDamaged && (
+                          <div className="absolute top-1/2 right-10 md:right-14 w-40 md:w-72 h-1.5 bg-gradient-to-l from-red-600 via-purple-600 to-transparent rounded-full shadow-[0_0_10px_red] mix-blend-screen animate-pulse z-20 pointer-events-none" />
+                        )}
+                      </div>
+
+                    </div>
+
+                    {/* Operational system prompt panel */}
+                    <div className="bg-slate-900/90 border border-slate-800 p-3 rounded-2xl z-10 flex flex-col sm:flex-row justify-between items-center text-center gap-2">
+                      <div className="text-left">
+                        <span className="text-[#C5A059] font-mono text-[9px] uppercase font-bold">STATUS OPERACIONAL DE BANCA</span>
+                        <p className="text-[10px] text-slate-300">
+                          {enemyHp <= 0 ? "⚠️ Criadouro abatido! Gere um novo alvo no painel direito ao lado." : 
+                           playerHp <= 0 ? "💔 Seu escudo esgotou. Cure-se estudando leis ou simuladores!" :
+                           "Selecione uma resposta correta abaixo para infligir danos de larvicida!"}
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        {(enemyHp <= 0 || playerHp <= 0) && (
+                          <button
+                            type="button"
+                            onClick={handleStartNewBattle}
+                            className="bg-red-600 hover:bg-[#C5A059] text-white px-4 py-1.5 rounded-xl text-[10px] font-bold shadow animate-pulse cursor-pointer"
+                          >
+                            ⚔️ Iniciar Novo Alvo de Combate
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Active Question matching Card */}
+                  {combatQuestion ? (
+                    <div className="bg-white rounded-3xl border-2 border-[#C5A059] p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center flex-wrap gap-2 mb-3">
+                          <span className="bg-[#002B5B] text-white text-[9px] font-bold font-mono px-2.5 py-0.5 rounded uppercase tracking-wider">
+                            {combatQuestion.category}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">FONTE: EDITAL PROMISSÃO MUNICIPAL</span>
+                        </div>
+                        
+                        <p className="text-xs font-serif font-bold text-slate-800 leading-relaxed mb-4">
+                          "{combatQuestion.text}"
+                        </p>
+
+                        {/* Interactive options grid */}
+                        <div className="space-y-2 mb-4">
+                          {combatQuestion.options.map((opt, oIdx) => {
+                            const letter = String.fromCharCode(65 + oIdx);
+                            const isSelected = combatSelectedAnswerIdx === oIdx;
+                            const isCorrectOpt = oIdx === combatQuestion.correctIndex;
+                            let styleCls = "bg-slate-50 border-slate-200 hover:border-[#002B5B]";
+                            
+                            if (combatAnswered) {
+                              if (isCorrectOpt) {
+                                styleCls = "bg-green-50 border-green-500 text-green-800 font-bold";
+                              } else if (isSelected) {
+                                styleCls = "bg-red-100 border-red-500 text-red-800";
+                              } else {
+                                styleCls = "bg-slate-50 border-slate-100 opacity-60";
+                              }
+                            } else if (isSelected) {
+                              styleCls = "bg-[#C5A059]/10 border-[#C5A059] font-bold text-[#002B5B]";
+                            }
+
+                            return (
+                              <button
+                                key={oIdx}
+                                type="button"
+                                disabled={combatAnswered}
+                                onClick={() => handleAnswerCombatQuestion(oIdx)}
+                                className={`w-full text-left p-3 rounded-xl border text-[11px] font-mono flex items-center transition-all cursor-pointer ${styleCls}`}
+                              >
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] mr-2 shrink-0 ${
+                                  isSelected ? 'bg-[#002B5B] text-white' : 'bg-slate-200 text-slate-655'
+                                }`}>{letter}</span>
+                                <span>{opt}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Explanation box revealed after answering */}
+                      {combatAnswered && (
+                        <div className="p-4 bg-slate-50 border border-slate-150 rounded-2xl animate-fade-in">
+                          <p className="text-[10px] font-bold text-[#C5A059] uppercase tracking-wider mb-1">AUDITORIA SANITÁRIA DE BANCA DE SAÚDE</p>
+                          <p className="text-[11px] text-slate-650 leading-relaxed italic">{combatQuestion.explanation}</p>
+                          
+                          <button
+                            type="button"
+                            onClick={handleLoadCombatQuestion}
+                            className="mt-3 bg-[#002B5B] hover:bg-[#C5A059] text-white text-[10px] font-bold font-mono px-4 py-2 rounded-xl transition-all cursor-pointer"
+                          >
+                            Derrubar Próxima Ameaça de Promissão ➔
+                          </button>
+                        </div>
+                      )}
+
+                    </div>
+                  ) : (
+                    <div className="bg-white p-8 rounded-3xl text-center border">
+                      <p className="text-xs text-slate-500">Nenhuma questão carregada. Clique em iniciar novo alvo!</p>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* Row 2: Rolling Action log details */}
+                <div className="lg:col-span-4 flex flex-col space-y-6">
+                  
+                  {/* Combat console telemetry */}
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-white flex flex-col h-[530px] justify-between shadow-lg">
+                    <div>
+                      <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-3">
+                        <h4 className="text-[10px] font-bold font-mono text-[#C5A059] tracking-widest uppercase">LOGS DE TRÁFEGO AMBIENTAL</h4>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      </div>
+                      
+                      {/* Action feed scrolling loop */}
+                      <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
+                        {combatHistory.map((h, hIdx) => (
+                          <div key={hIdx} className="text-[10px] font-mono text-slate-350 text-slate-300 border-l border-slate-700 pl-2 py-1 leading-relaxed">
+                            <span className="text-[#C5A059] font-bold">[{hIdx === 0 ? 'CONTA' : 'LOG'}]</span> {h}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-3">
+                      <span className="text-[9px] uppercase font-bold text-slate-500 font-mono">SUPLEMENTO DE CURA DE ESCUDO</span>
+                      <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
+                        Seu HP está baixo? Vá para a aba de estudos de <strong>Repetição Espaçada (Flashcards)</strong> ou conclua metas de estudos para restabelecer energia!
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
 
               </div>
 
@@ -2289,6 +2904,23 @@ export default function App() {
 
             {/* Grid menu mapping */}
             <div className="grid grid-cols-2 gap-3 mb-5">
+              <button 
+                onClick={() => { 
+                  setActiveTab('arena'); 
+                  setIsMoreDrawerOpen(false); 
+                  if (playerHp <= 0 || !combatQuestion) { 
+                    handleStartNewBattle(); 
+                  } 
+                }}
+                className={`p-3.5 rounded-2xl border col-span-2 flex items-center justify-center text-center gap-3 transition-all ${
+                  activeTab === 'arena' ? 'bg-[#C5A059] text-white font-bold' : 'bg-slate-900 text-[#C5A059] border-[#C5A059]'
+                }`}
+              >
+                <span className="text-xl">⚔️</span>
+                <span className="text-xs font-bold uppercase tracking-wider">Combate RPG (Arena)</span>
+                <span className="bg-red-650 bg-red-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded animate-pulse">RPG ACTV</span>
+              </button>
+
               <button 
                 onClick={() => { setActiveTab('simulados'); setIsMoreDrawerOpen(false); }}
                 className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center text-center gap-2 transition-all ${
