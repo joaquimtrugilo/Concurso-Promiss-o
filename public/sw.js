@@ -1,4 +1,4 @@
-const CACHE_NAME = 'promissao-concursos-v1';
+const CACHE_NAME = 'promissao-concursos-v4';
 const ASSETS = [
   '/',
   '/index.html',
@@ -32,29 +32,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Simple fetch listener to satisfy PWA requirements
-  // Only intercept HTTP/HTTPS schemes to avoid extensions or chrome:// crashes
   if (event.request.url.startsWith('http')) {
+    // Network-First with Cache Fallback strategy
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetch(event.request).then((response) => {
-          // If response is invalid, return it
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+      fetch(event.request)
+        .then((response) => {
+          // If response is invalid, or a POST request (we can only cache GET), skip caching
+          if (!response || response.status !== 200 || response.type !== 'basic' || event.request.method !== 'GET') {
             return response;
           }
-          // Clone the response to store it in cache
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
           return response;
-        }).catch(() => {
-          // Fallback offline behavior
-        });
-      })
+        })
+        .catch(() => {
+          // If network fails (offline), load from cache fallback
+          return caches.match(event.request);
+        })
     );
   }
 });
