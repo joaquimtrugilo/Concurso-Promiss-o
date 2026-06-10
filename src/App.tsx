@@ -160,6 +160,32 @@ export default function App() {
     }
   };
 
+  const handleForceUpdateApp = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        for (const key of keys) {
+          await caches.delete(key);
+        }
+      }
+      showToast("Cache limpo! Recarregando aplicativo em instantes...", "success");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } catch (err) {
+      showToast("Erro ao limpar cache. Recarregando de forma simples...", "error");
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    }
+  };
+
   // Request Tutor AI Question Explanation
   const handleGetAiQuestionExplanation = async () => {
     if (selectedAnswerIdx === null) return;
@@ -2315,20 +2341,31 @@ export default function App() {
             </div>
 
             {/* Target Role drop-down directly inside "Mais" menu for phone customization */}
-            <div className="border-t border-slate-150 pt-4">
-              <label className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2 font-mono">Alterar Cargo Alvo:</label>
-              <select 
-                value={selectedRole}
-                onChange={(e) => {
-                  setSelectedRole(e.target.value as any);
-                  showToast(`Cargo alterado para ${e.target.value}!`, 'info');
-                }}
-                className="w-full bg-slate-100 text-slate-800 text-xs rounded-xl px-3 py-2.5 border border-slate-250 focus:outline-none"
+            <div className="border-t border-slate-150 pt-4 space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider mb-2 font-mono">Alterar Cargo Alvo:</label>
+                <select 
+                  value={selectedRole}
+                  onChange={(e) => {
+                    setSelectedRole(e.target.value as any);
+                    showToast(`Cargo alterado para ${e.target.value}!`, 'info');
+                  }}
+                  className="w-full bg-slate-100 text-slate-800 text-xs rounded-xl px-3 py-2.5 border border-slate-250 focus:outline-none"
+                >
+                  <option value="Agente de Combate às Endemias">ACS / Combate às Endemias (ACE)</option>
+                  <option value="Agente Comunitário de Saúde">Agente Comunitário de Saúde (ACS)</option>
+                  <option value="Vigilante Sanitário">Vigilante Sanitário Municipal</option>
+                </select>
+              </div>
+
+              {/* PWA Cache Buster Button */}
+              <button 
+                type="button"
+                onClick={handleForceUpdateApp}
+                className="w-full bg-red-600 text-white p-3 rounded-xl text-[11px] font-bold hover:bg-red-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm"
               >
-                <option value="Agente de Combate às Endemias">ACS / Combate às Endemias (ACE)</option>
-                <option value="Agente Comunitário de Saúde">Agente Comunitário de Saúde (ACS)</option>
-                <option value="Vigilante Sanitário">Vigilante Sanitário Municipal</option>
-              </select>
+                🔄 Limpar Cache & Forçar Atualização do App
+              </button>
             </div>
           </div>
         </div>

@@ -381,7 +381,7 @@ Crie um calendário completo de Segunda a Domingo. Forneça o resultado no forma
 
 // Serve static assets in production or use Vite middleware in development
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
@@ -395,9 +395,15 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode.`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode.`);
+    });
+  }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
