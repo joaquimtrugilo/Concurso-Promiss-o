@@ -34,29 +34,32 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetching: Serve from cache if available, falling back to network
+// Fetching: Attempt Network-First (with cache backup) to ensure users always receive real-time updates when online
 self.addEventListener('fetch', (event) => {
-  // Ignore API requests and outside hosts to allow real-time AI capabilities
-  if (event.request.url.includes('/api/') || !event.request.url.startsWith(self.location.origin)) {
+  // Only handle GET requests, and ignore internal APIs or external origins
+  if (
+    event.request.method !== 'GET' ||
+    event.request.url.includes('/api/') ||
+    !event.request.url.startsWith(self.location.origin)
+  ) {
     return;
   }
 
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Network fallback in background to update cache for next load (Stale-While-Revalidate)
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse);
-            });
-          }
-        }).catch(() => {
-          // Bypassed if offline and request fails
-        });
-        return cachedResponse;
-      }
-      return fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        // If we get a valid online response, update the cache container dynamically
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Safe offline fallback: return cached asset if network is completely down
+        return caches.match(event.request);
+      })
   );
 });
