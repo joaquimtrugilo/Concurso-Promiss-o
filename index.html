@@ -6,29 +6,21 @@
     <meta name="theme-color" content="#0f172a" />
     <title>Promissão Concursos - ACE</title>
     <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" href="https://img.icons8.com/color/192/000000/education.png" />
+    <link rel="icon" type="image/png" href="/icon-512.png" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Active Cache Buster & Service Worker Purger
+      // Register standard active service worker for 100% PWA store readiness
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (let reg of registrations) {
-            reg.unregister().then(() => {
-              console.log('Service Worker antigo removido para garantir atualização online real-time!');
-            });
-          }
-        });
-      }
-      if ('caches' in window) {
-        caches.keys().then((keys) => {
-          keys.forEach((key) => {
-            caches.delete(key).then(() => {
-              console.log('Cache removido:', key);
-            });
-          });
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((reg) => {
+              console.log('Service Worker registrado com sucesso:', reg.scope);
+              reg.update();
+            })
+            .catch((err) => console.error('Erro ao registrar Service Worker:', err));
         });
       }
     </script>
